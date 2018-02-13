@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -35,10 +36,15 @@ public class App
 {
     public static void main( String[] args )
     {
+    	boolean tryAgain = true;
+    	
+    	
+    	String keywords;
+    	System.out.println("Please describe your emergency:");
     	Scanner in = new Scanner(System.in);
-    	String keyword;
-    	System.out.println("Please enter what you are searching for:");
-    	keyword = in.nextLine();
+    	keywords = in.nextLine();
+    	ArrayList<String> searchItems = parseKeywords(keywords);
+    	ArrayList<String> searchResults = new ArrayList<String>();
     	in.close();
     	   	
     	Discovery discovery = new Discovery("2017-11-07");
@@ -54,7 +60,7 @@ public class App
     	GetEnvironmentRequest getRequest = new GetEnvironmentRequest.Builder(environmentId).build();
     	GetEnvironmentResponse getResponse = discovery.getEnvironment(getRequest).execute();
     	
-    	String collectionId = "5a8979c1-e508-4da1-a420-fecdbd327620";
+    	String collectionId = "3842edf9-d906-444d-92e5-96dadb04f8e5";
 
     	GetCollectionRequest getCollRequest = new GetCollectionRequest.Builder(environmentId, collectionId).build();
     	GetCollectionResponse getCollResponse = discovery.getCollection(getCollRequest).execute();
@@ -62,16 +68,79 @@ public class App
 
     	QueryRequest.Builder queryBuilder = new QueryRequest.Builder(environmentId, collectionId); //can change query type here
     	
+    	QueryResponse queryResponse;
     	
-    	queryBuilder.query(keyword);
-    	QueryResponse queryResponse = discovery.query(queryBuilder.build()).execute();
-    	System.out.println(queryResponse.getResults().toString());
+    	for(int i = 0; i<searchItems.size(); i++) {
+    		System.out.println("Querying database for ..." + searchItems.get(i));
+        	queryBuilder.query("enriched_text.concepts.text:" +searchItems.get(i));
+        	queryResponse = discovery.query(queryBuilder.build()).execute();
+        	String result = queryResponse.getResults().toString();
+        	if(queryResponse.getResults().size()==0) {
+        		//do nothing
+        	}
+        	else {
+        		tryAgain = false;
+        	
+        		if(result.length()>500) {
+        			searchResults.add(result.substring(0,  500));
+        		}
+        		else {
+        			searchResults.add(result);
+        		}
+        	}
+        	
+    	}
     	
-    	
-    	
-    	/*CreateEnvironmentRequest.Builder createRequestBuilder = new CreateEnvironmentRequest.Builder(environmentName, CreateEnvironmentRequest.Size.ONE);
-    	createRequestBuilder.description(environmentDesc);
-    	CreateEnvironmentResponse createResponse = discovery.createEnvironment(createRequestBuilder.build()).execute();
-    	*/
+    	while(tryAgain) {
+    			System.out.println("No results found on current situation description, please tell us more: ");
+    			in = new Scanner(System.in);
+    	    	keywords = in.nextLine();
+    	    	in.close();
+    	    	
+    	    	for(int i = 0; i<searchItems.size(); i++) {
+    	    	System.out.println("Querying database for ..." + searchItems.get(i));
+            	queryBuilder.query("enriched_text.concepts.text:" +searchItems.get(i));
+            	queryResponse = discovery.query(queryBuilder.build()).execute();
+            	String result = queryResponse.getResults().toString();
+            	if(queryResponse.getResults().size()==0) {
+            		//do nothing
+            	}
+            	else {
+            		tryAgain = false;
+            	
+            		if(result.length()>500) {
+            			searchResults.add(result.substring(0,  500));
+            		}
+            		else {
+            			searchResults.add(result);
+            		}
+            	}
+    	    	}
+    		
+    	}
+    	System.out.println(searchResults.toString());
        }
+    
+    private static ArrayList<String> parseKeywords(String keywords) {
+    	ArrayList<String> keywordsArray = new ArrayList<String>();
+    	System.out.println("Parsing input........");
+    	int space = 0;
+    	
+    	while(space>=0) {
+    		System.out.println("Space = " + space);
+    		space = keywords.indexOf(' ',1);
+    		
+    		System.out.println("Space = " + space);
+    		if(space < 0) {
+    			keywordsArray.add(keywords);
+    		}
+    		else {
+    			keywordsArray.add(keywords.substring(0, space));
+    			
+    			keywords = keywords.substring(space);
+    		}
+    	}
+    	return keywordsArray;
+    		
+    }
 }
