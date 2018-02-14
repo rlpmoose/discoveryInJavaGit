@@ -45,7 +45,7 @@ public class App
     	keywords = in.nextLine();
     	ArrayList<String> searchItems = parseKeywords(keywords);
     	ArrayList<String> searchResults = new ArrayList<String>();
-    	in.close();
+    	//in.close();  don't close here if you want to use input ever again
     	   	
     	Discovery discovery = new Discovery("2017-11-07");
     	discovery.setEndPoint("https://gateway.watsonplatform.net/discovery/api/");
@@ -74,7 +74,7 @@ public class App
     		System.out.println("Querying database for ..." + searchItems.get(i));
         	queryBuilder.query("enriched_text.concepts.text:" +searchItems.get(i));
         	queryResponse = discovery.query(queryBuilder.build()).execute();
-        	String result = queryResponse.getResults().toString();
+        	String result = queryResponse.toString();
         	if(queryResponse.getResults().size()==0) {
         		//do nothing
         	}
@@ -82,7 +82,8 @@ public class App
         		tryAgain = false;
         	
         		if(result.length()>500) {
-        			searchResults.add(result.substring(0,  500));
+        			searchResults.add(result);
+        			//searchResults.add(result.substring(0, 500));
         		}
         		else {
         			searchResults.add(result);
@@ -91,34 +92,124 @@ public class App
         	
     	}
     	
-    	while(tryAgain) {
-    			System.out.println("No results found on current situation description, please tell us more: ");
-    			in = new Scanner(System.in);
-    	    	keywords = in.nextLine();
-    	    	in.close();
-    	    	
-    	    	for(int i = 0; i<searchItems.size(); i++) {
-    	    	System.out.println("Querying database for ..." + searchItems.get(i));
-            	queryBuilder.query("enriched_text.concepts.text:" +searchItems.get(i));
-            	queryResponse = discovery.query(queryBuilder.build()).execute();
-            	String result = queryResponse.getResults().toString();
-            	if(queryResponse.getResults().size()==0) {
-            		//do nothing
-            	}
-            	else {
-            		tryAgain = false;
-            	
-            		if(result.length()>500) {
-            			searchResults.add(result.substring(0,  500));
-            		}
-            		else {
-            			searchResults.add(result);
-            		}
-            	}
-    	    	}
-    		
+    	System.out.println("Parsing results........");
+    	ArrayList<ArrayList<String>> combined = parseFileName(searchResults.toString());
+    	ArrayList<String> filenames = (ArrayList) combined.get(0);
+    	ArrayList<String> fileIndices = (ArrayList) combined.get(1);
+    	
+    	if(filenames.size()==0) {
+    		tryAgain = true;
     	}
-    	System.out.println(searchResults.toString());
+    	else {
+    		System.out.println("Observations match results for the following emergencies: ");
+    	for(int i = 0; i<filenames.size(); i++) {
+    		System.out.println((i+1) + "." + filenames.get(i));
+    	}
+    	System.out.print("Enter number of emergency you would like to get further help with, or choose 0 to try another entry: ");
+    	
+    	
+    
+    	int numberChoice;
+    	if(in.hasNextLine()) {
+    		numberChoice = Integer.parseInt(in.nextLine());
+    	}
+    	else {
+    		System.out.println("Automatically choosing the first one because I can't get it to read the integer...");
+    		numberChoice = 1;
+    	}
+    
+    	
+    	
+    	if((numberChoice > filenames.size()) || (numberChoice<0)) {
+    		System.out.println("You failed to follow basic instructions. Natural selection for you.");
+    		System.exit(0);
+    	}
+    	else if(numberChoice ==0) {
+    		tryAgain = true;
+    	}
+    	else {
+    		int why1 = Integer.parseInt(fileIndices.get(numberChoice -1));
+    		int why2 = Integer.parseInt(fileIndices.get(numberChoice));
+    		//System.out.println("Passing start point " + why1 + "and end point" + why2);
+    		ArrayList<String> finalResults = parseSentenceNotes(searchResults.toString(), why1, why2);
+    		System.out.println("Printing results........");
+        	System.out.println(finalResults.toString());
+    	}
+    }
+    	
+    	while(tryAgain) {
+     	
+			System.out.println("No acceptable results found; Please tell us more: ");
+	    	keywords = in.nextLine();
+	    	searchItems = parseKeywords(keywords);
+        	searchResults = new ArrayList<String>();
+	    	for(int i = 0; i<searchItems.size(); i++) {
+	    		System.out.println("Querying database for ..." + searchItems.get(i));
+	        	queryBuilder.query("enriched_text.concepts.text:" +searchItems.get(i));
+	        	queryResponse = discovery.query(queryBuilder.build()).execute();
+	        	String result = queryResponse.toString();
+	        	if(queryResponse.getResults().size()==0) {
+	        		//do nothing
+	        	}
+	        	else {
+	        		tryAgain = false;
+	        	
+	        		if(result.length()>500) {
+	        			searchResults.add(result);
+	        			//searchResults.add(result.substring(0, 500));
+	        		}
+	        		else {
+	        			searchResults.add(result);
+	        		}
+	        	}
+	        	
+	    	}
+	    	
+	    	System.out.println("Parsing results........");
+	    	combined = parseFileName(searchResults.toString());
+	    	filenames = (ArrayList) combined.get(0);
+	    	fileIndices = (ArrayList) combined.get(1);
+	    	if(filenames.size()==0) {
+	    		tryAgain = true;
+	    	}
+	    	else {
+	    	System.out.println("Observations match results for the following emergencies: ");
+	    	for(int i = 0; i<filenames.size(); i++) {
+	    		System.out.println((i+1) + "." + filenames.get(i));
+	    	}
+	    	System.out.print("Enter number of emergency you would like to get further help with, or choose 0 to try another entry: ");
+	    	
+	    	
+	    
+	    	int numberChoice2;
+	    	if(in.hasNextLine()) {
+	    		numberChoice2 = Integer.parseInt(in.nextLine());
+	    	}
+	    	else {
+	    		System.out.println("Automatically choosing the first one because I can't get it to read the integer...");
+	    		numberChoice2 = 1;
+	    	}
+	    	
+	    	
+	    	
+	    	if((numberChoice2 > filenames.size()) || (numberChoice2<0)) {
+	    		System.out.println("You failed to follow basic instructions. Natural selection for you.");
+	    		System.exit(0);
+	    	}
+	    	else if(numberChoice2 ==0) {
+	    		tryAgain = true;
+	    	}
+	    	else {
+	    		int why1 = Integer.parseInt(fileIndices.get(numberChoice2 -1));
+	    		int why2 = Integer.parseInt(fileIndices.get(numberChoice2));
+	    		//System.out.println("Passing start point " + why1 + "and end point" + why2);
+	    		ArrayList<String> finalResults = parseSentenceNotes(searchResults.toString(), why1, why2);
+	    		System.out.println("Printing results........");
+	        	System.out.println(finalResults.toString());
+	    	}
+	    	}
+    	}
+   in.close();
        }
     
     private static ArrayList<String> parseKeywords(String keywords) {
@@ -127,20 +218,113 @@ public class App
     	int space = 0;
     	
     	while(space>=0) {
-    		System.out.println("Space = " + space);
+    		//System.out.println("Space = " + space);
     		space = keywords.indexOf(' ',1);
     		
-    		System.out.println("Space = " + space);
+    		//System.out.println("Space = " + space);
     		if(space < 0) {
     			keywordsArray.add(keywords);
     		}
     		else {
-    			keywordsArray.add(keywords.substring(0, space));
+    			String newSentence = keywords.substring(0, space);
+    			keywordsArray.add(newSentence);
+    			
     			
     			keywords = keywords.substring(space);
     		}
     	}
     	return keywordsArray;
+    		
+    }
+    
+    private static ArrayList<String> parseSentenceNotes(String results, int startPoint, int endPoint) {
+    	ArrayList<String> sentences = new ArrayList<String>();
+    	System.out.println("Parsing results........");
+    	int indexSentence = 0;
+    	//System.out.println("Space = " + indexSentence);
+		indexSentence = results.indexOf("\"sentence\":", startPoint);
+		
+		//System.out.println("Space = " + indexSentence);
+		if(indexSentence < 0) {
+			//do nothing
+		}
+		else {
+			int newLine = results.indexOf("\n", indexSentence);
+			String newSentence = results.substring(indexSentence+13, newLine-3);
+			newSentence = '\n' + newSentence;
+			sentences.add(newSentence);
+			//System.out.println("Added "+ newSentence + " to results.");
+			
+			
+			results = results.substring(newLine);
+			endPoint = endPoint - newLine;
+			
+		}
+    	
+    	while(indexSentence>=0) {
+    		//System.out.println("Space = " + indexSentence);
+    		indexSentence = results.indexOf("\"sentence\":", 1);
+    		
+    		//System.out.println("Space = " + indexSentence);
+    		if(indexSentence < 0 || indexSentence > endPoint) {
+    			indexSentence = -1;
+    		}
+    		else {
+    			int newLine = results.indexOf("\n", indexSentence);
+    			String newSentence = results.substring(indexSentence+13, newLine-3);
+    			newSentence = '\n' + newSentence;
+    			if(sentences.contains(newSentence)) {
+    				//do not add duplicate
+    			}
+    			else {
+    				sentences.add(newSentence);
+    			}
+    			//System.out.println("Added "+ newSentence + " to results.");
+    			
+    			
+    			results = results.substring(newLine);
+    			endPoint = endPoint - newLine;
+    			
+    		}
+    	}
+    	return sentences;
+    		
+    }
+    
+    private static ArrayList<ArrayList<String>> parseFileName(String results) {
+    	ArrayList<String> fileNames = new ArrayList<String>();
+    	ArrayList<String> fileIndices = new ArrayList<String>();
+    	int originalSize = results.length();
+    	int elapsedLength = 0;
+    	System.out.println("Parsing results........");
+    	int index = 0;
+    	
+    	while(index>=0) {
+    		//System.out.println("Space = " + index);
+    		index = results.indexOf("\"filename\": ", 1);
+    		
+    		//System.out.println("Space = " + index);
+    		if(index < 0) {
+    			//do nothing
+    		}
+    		else {
+    			int newLine = results.indexOf("\n", index);
+    			String fileName = results.substring(index+13, newLine-7);
+    			fileNames.add(fileName);
+    			int hold = index+ elapsedLength;
+    			fileIndices.add(""+ hold);
+    			//System.out.println("Added "+ fileName + " to possible files and index " + index);
+    			
+    			elapsedLength = elapsedLength + newLine;
+    			results = results.substring(newLine);
+    			
+    		}
+    	}
+    	fileIndices.add("" +originalSize);
+    	ArrayList<ArrayList<String>> returnList = new ArrayList<ArrayList<String>>();
+    	returnList.add(fileNames);
+    	returnList.add(fileIndices);
+    	return returnList;
     		
     }
 }
